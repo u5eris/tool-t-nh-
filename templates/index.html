@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tool tính toán đường truyền RF </title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .calculator-container {
+      background-color: #000000;
+      border: 2px solid #333;
+      border-radius: 12px;
+      padding: 30px;
+      width: 100%;
+      max-width: 900px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+    }
+    h1 {
+      color: #ffeb3b;
+      text-align: center;
+      font-size: 1.6rem;
+      margin-top: 0;
+      margin-bottom: 25px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .select-group {
+      margin-bottom: 25px;
+      text-align: center;
+    }
+    .select-group label {
+      font-weight: bold;
+      color: #00bcd4;
+      margin-right: 10px;
+      font-size: 1.05rem;
+    }
+    .select-group select {
+      background-color: #1e1e1e;
+      color: #fff;
+      border: 1px solid #00bcd4;
+      padding: 10px 15px;
+      border-radius: 6px;
+      font-size: 1rem;
+      outline: none;
+      cursor: pointer;
+    }
+    hr {
+      border: 0;
+      height: 1px;
+      background: #444;
+      margin: 20px 0;
+    }
+    .calc-section {
+      display: none; /* Mặc định ẩn các section */
+    }
+    .calc-section.active {
+      display: block; /* Chỉ hiện section được chọn */
+    }
+    .diagram-layout {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .diagram-box {
+      flex: 1;
+      border: 1px dashed #555;
+      padding: 15px;
+      text-align: center;
+      background-color: #1a1a1a;
+      border-radius: 8px;
+    }
+    .diagram-box img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .inputs-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .input-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .input-row label {
+      font-weight: bold;
+      color: #e0e0e0;
+    }
+    .input-row input, .input-row select {
+      width: 90px;
+      padding: 6px 10px;
+      background-color: #222;
+      border: 1px solid #666;
+      color: #fff;
+      border-radius: 4px;
+      text-align: right;
+    }
+    .input-row select {
+      text-align-last: center;
+      cursor: pointer;
+    }
+    .unit {
+      color: #aaa;
+      width: 45px;
+      font-size: 0.9rem;
+    }
+    .btn-action {
+      background-color: #e91e63;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-action:hover {
+      background-color: #c2185b;
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 15px;
+    }
+    .error-msg {
+      color: #ff5252;
+      text-align: center;
+      font-size: 0.9rem;
+      margin-top: 10px;
+      display: none;
+    }
+    .help-box {
+      background-color: #111;
+      border-left: 3px solid #ffeb3b;
+      padding: 12px 15px;
+      margin-top: 25px;
+      font-size: 0.85rem;
+      color: #bbb;
+      line-height: 1.5;
+    }
+    .help-box h4 {
+      margin: 0 0 5px 0;
+      color: #ffeb3b;
+    }
+    input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+  </style>
+</head>
+<body>
+
+  <div class="calculator-container">
+    <h1>Công Cụ Tính Toán Đường Truyền RF</h1>
+
+    <!-- Menu Lựa Chọn Loại Đường Truyền -->
+    <div class="select-group">
+      <label for="typeSelect">Chọn loại đường truyền:</label>
+      <select id="typeSelect" onchange="switchCalculator()">
+        <option value="coaxial">Cáp đồng trục (Coaxial Line)</option>
+        <option value="circular_wg">Ống dẫn sóng hình trụ tròn (Circular Waveguide)</option>
+        <option value="rect_wg">Ống dẫn sóng hình chữ nhật (Rectangular Waveguide)</option>
+        <option value="microstrip">Đường truyền mạch in (Microstrip Line)</option>
+        <option value="twowire">Đường truyền hai dây (Two-Wire Line)</option>
+      </select>
+    </div>
+
+    <hr>
+
+    <!-- 1. CÁP ĐỒNG TRỤC -->
+    <div id="coaxial" class="calc-section active">
+      <div class="diagram-layout">
+        <div>
+          <img src="/static/images/model2.png" width="130">
+        </div>
+        <div>
+          <img src="/static/images/model.jpg" width="400">
+        </div>
+        
+        <div class="inputs-box">
+          <div class="input-row">
+            <label>εr:</label>
+            <input type="number" id="coax_er" step="any" placeholder="2.0">
+            <span class="unit"></span>
+          </div>
+          <div class="input-row">
+            <label>d (Lõi trong):</label>
+            <input type="number" id="coax_d" step="any" placeholder="0.9">
+            <span class="unit">[mm]</span>
+          </div>
+          <div class="input-row">
+            <label>D (Vỏ ngoài):</label>
+            <input type="number" id="coax_D" step="any" placeholder="4.1">
+            <span class="unit">[mm]</span>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="input-row" style="justify-content: center; margin-bottom: 15px;">
+        <button class="btn-action" onclick="calcCoaxial()">Tính toán </button> 
+        
+      </div>
+
+      <div id="coax_error" class="error-msg"></div>
+
+      <div class="results-grid">
+        <div class="input-row"><label>Trở kháng Zo:</label><input type="text" id="coax_z0" readonly><span class="unit">[ohm]</span></div>
+        <div class="input-row"><label>Điện dung  C:</label><input type="text" id="coax_C" readonly><span class="unit">[pF/m]</span></div>
+        <div class="input-row"><label>Độ tự cảm L:</label><input type="text" id="coax_L" readonly><span class="unit">[nH/m]</span></div>
+        <div class="input-row"><label>Tần số cắt fc:</label><input type="text" id="coax_fc" readonly><span class="unit">[GHz]</span></div>
+        <div class="input-row"><label>Vận tốc pha Vp:</label><input type="text" id="coax_vp" readonly><span class="unit">[km/s]</span></div>
+        <div class="input-row"><label>td:</label><input type="text" id="coax_td" readonly><span class="unit">[ns/m]</span></div>
+      
+      </div>
+    </div>
+
+    <!-- 2. ỐNG DẪN SÓNG HÌNH TRỤ TRÒN -->
+    <div id="circular_wg" class="calc-section">
+      <div class="diagram-layout">
+        <div>
+          <img src="/static/images/model3.jpg" width="400">
+        </div>
+        <div class="inputs-box">
+          <div class="input-row">
+            <label>Bán kính (a):</label>
+            <input type="number" id="circ_a" step="any" placeholder="10">
+            <span class="unit">[mm]</span>
+          </div>
+          <div class="input-row">
+            <label>Hằng số εr:</label>
+            <input type="number" id="circ_er" step="any" placeholder="1.0">
+            <span class="unit"></span>
+          </div>
+          <div class="input-row">
+            <label>Loại sóng:</label>
+            <select id="circ_mode_type">
+              <option value="TE">TE</option>
+              <option value="TM">TM</option>
+            </select>
+            <span class="unit"></span>
+          </div>
+          <div class="input-row">
+            <label>Chỉ số (m, n):</label>
+            <input type="number" id="circ_m" placeholder="1" style="width:42px;" value="1">
+            <input type="number" id="circ_n" placeholder="1" style="width:42px;" value="1">
+            <span class="unit"></span>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="input-row" style="justify-content: center; margin-bottom: 15px;">
+        <button class="btn-action" onclick="calcCircularWG()">Tính toán</button>
+      </div>
+
+      <div id="circ_error" class="error-msg"></div>
+
+      <div class="results-grid">
+        <div class="input-row"><label>fc (Tần số cắt):</label><input type="text" id="circ_fc" readonly><span class="unit">[GHz]</span></div>
+        <div class="input-row"><label>λc (Bước sóng cắt):</label><input type="text" id="circ_lc" readonly><span class="unit">[mm]</span></div>
+      </div>
+    </div>
+
+    <!-- 3. ỐNG DẪN SÓNG HÌNH CHỮ NHẬT -->
+    <div id="rect_wg" class="calc-section">
+      <div class="diagram-layout">
+        <div>
+          <img src="/static/images/model4.jpg" width="500">
+        </div>
+        <div class="inputs-box">
+          <div class="input-row">
+            <label>Rộng (a):</label>
+            <input type="number" id="rect_a" step="any" placeholder="22.86">
+            <span class="unit">[mm]</span>
+          </div>
+          <div class="input-row">
+            <label>Cao (b):</label>
+            <input type="number" id="rect_b" step="any" placeholder="10.16">
+            <span class="unit">[mm]</span>
+          </div>
+          <div class="input-row">
+            <label>Hằng số εr:</label>
+            <input type="number" id="rect_er" step="any" placeholder="1.0" value="1.0">
+            <span class="unit"></span>
+          </div>
+          <div class="input-row">
+            <label>Loại sóng:</label>
+            <select id="rect_mode_type">
+              <option value="TE">TE</option>
+              <option value="TM">TM</option>
+            </select>
+            <span class="unit"></span>
+          </div>
+          <div class="input-row">
+            <label>Chỉ số (m, n):</label>
+            <input type="number" id="rect_m" placeholder="1" style="width:42px;" value="1">
+            <input type="number" id="rect_n" placeholder="0" style="width:42px;" value="0">
+            <span class="unit"></span>
+          </div>
+          <div class="input-row">
+            <label>Tần số (f):</label>
+            <input type="number" id="rect_f" step="any" placeholder="10">
+            <span class="unit">[GHz]</span>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="input-row" style="justify-content: center; margin-bottom: 15px;">
+        <button class="btn-action" onclick="calcRectWG()">Tính toán</button>
+      </div>
+
+      <div id="rect_error" class="error-msg"></div>
+
+      <div class="results-grid">
+        <div class="input-row"><label>Tần số cắt fc :</label><input type="text" id="rect_fc" readonly><span class="unit">[GHz]</span></div>
+        <div class="input-row"><label>Bước sóng cắt λc :</label><input type="text" id="rect_lc" readonly><span class="unit">[mm]</span></div>
+        <div class="input-row" style="grid-column: span 2; justify-content: center;"><label>Trở kháng đặc tính Zc:</label><input type="text" id="rect_zwave" readonly><span class="unit">[ohm]</span></div>
+      </div>
+    </div>
+
+    <!-- 4. ĐƯỜNG TRUYỀN MẠCH IN (MICROSTRIP) -->
+    <div id="microstrip" class="calc-section">
+      <div class="diagram-layout">
+        <div class="diagram-box">
+          <img src="/static/images/model5.jpg" width="400">
+        </div>
+        <div class="inputs-box">
+          <div class="input-row">
+            <label>Chiều rộng (W):</label>
+            <input type="number" id="ms_w" step="any" placeholder="3.0">
+            <span class="unit">[mm]</span>
+          </div>
+          <div class="input-row">
+            <label>Độ dày đế (d):</label>
+            <input type="number" id="ms_d" step="any" placeholder="1.6">
+            <span class="unit">[mm]</span>
+          </div>
+          <div class="input-row">
+            <label>Hằng số εr:</label>
+            <input type="number" id="ms_er" step="any" placeholder="4.4">
+            <span class="unit"></span>
+          </div>
+        </div>
+      </div>
+      
+
+      <hr>
+
+      <div class="input-row" style="justify-content: center; margin-bottom: 15px;">
+        <button class="btn-action" onclick="calcMicrostrip()">Tính toán</button>
+      </div>
+
+      <div id="ms_error" class="error-msg"></div>
+
+      <div class="results-grid">
+        <div class="input-row"><label>Trở kháng Zo:</label><input type="text" id="ms_z0" readonly><span class="unit">[ohm]</span></div>
+        <div class="input-row"><label>εeff (Hệ số eff):</label><input type="text" id="ms_eeff" readonly><span class="unit"></span></div>
+        <div class="input-row" style="grid-column: span 2; justify-content: center;"><label>Tỷ số W/d:</label><input type="text" id="ms_wd_ratio" readonly><span class="unit"></span></div>
+      </div>
+    </div>
+
+
+
+<!-- 5. ĐƯỜNG TRUYỀN HAI DÂY -->
+    <div id="twowire" class="calc-section">
+      <div class="diagram-layout">
+        <div class="diagram-box">
+          <!-- Thay bằng đường dẫn ảnh minh họa hai dây song song của bạn nếu có -->
+          <img src="/static/images/twowire.png" width="300" alt="Two-wire line">
+        </div>
+        <div class="inputs-box">
+          <div class="input-row">
+            <label>Hằng số εr:</label>
+            <input type="number" id="twowire_er" step="any" placeholder="1.0" value="1.0">
+            <span class="unit"></span>
+          </div>
+          <div class="input-row">
+            <label>d (Đường kính dây):</label>
+            <input type="number" id="twowire_d" step="any" placeholder="1.0">
+            <span class="unit">[mm]</span>
+          </div>
+          <div class="input-row">
+            <label>D (Khoảng cách tâm):</label>
+            <input type="number" id="twowire_D" step="any" placeholder="10.0">
+            <span class="unit">[mm]</span>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="input-row" style="justify-content: center; margin-bottom: 15px;">
+        <button class="btn-action" onclick="calcTwoWire()">Tính toán</button>
+      </div>
+
+      <div id="twowire_error" class="error-msg"></div>
+
+      <div class="results-grid">
+        <div class="input-row"><label>Trở kháng Zo:</label><input type="text" id="twowire_z0" readonly><span class="unit">[ohm]</span></div>
+        <div class="input-row"><label>Điện dung C:</label><input type="text" id="twowire_C" readonly><span class="unit">[pF/m]</span></div>
+        <div class="input-row"><label>Độ tự cảm L:</label><input type="text" id="twowire_L" readonly><span class="unit">[nH/m]</span></div>
+        <div class="input-row"><label>Vận tốc pha Vp:</label><input type="text" id="twowire_vp" readonly><span class="unit">[km/s]</span></div>
+        <div class="input-row" style="grid-column: span 2; justify-content: center;"><label>Thời gian trễ td:</label><input type="text" id="twowire_td" readonly><span class="unit">[ns/m]</span></div>
+      </div>
+    </div>
+    <!-- Khối hướng dẫn -->
+    <div class="help-box">
+      <h4>[ Hướng dẫn sử dụng ]</h4>
+      1. Chọn loại đường truyền điện từ bạn muốn tính từ menu thả xuống.<br>
+      2. Nhập các thông số kích thước cơ học và hằng số điện môi (εr).<br>
+      3. Nhấn nút <b>Tính toán</b> tương ứng để hiển thị kết quả.
+    </div>
+
+  </div>
+
+  <script>
+    function switchCalculator() {
+      const sections = document.querySelectorAll('.calc-section');
+      sections.forEach(sec => sec.classList.remove('active'));
+      const selectedValue = document.getElementById('typeSelect').value;
+      const targetSection = document.getElementById(selectedValue);
+      if (targetSection) targetSection.classList.add('active');
+    }
+
+    // 1. Tính toán Cáp đồng trục
+    async function calcCoaxial() {
+      const er = document.getElementById('coax_er').value;
+      const d = document.getElementById('coax_d').value;
+      const D = document.getElementById('coax_D').value;
+      const errorDiv = document.getElementById('coax_error');
+
+      errorDiv.style.display = 'none';
+
+      try {
+        const response = await fetch('/calculate_coaxial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ er: er, d: d, D: D })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          errorDiv.innerText = data.error || 'Có lỗi xảy ra!';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        document.getElementById('coax_z0').value = data.z0;
+        document.getElementById('coax_C').value = data.C;
+        document.getElementById('coax_L').value = data.L;
+        document.getElementById('coax_fc').value = data.fc;
+        document.getElementById('coax_vp').value = data.vp;
+        document.getElementById('coax_td').value = data.td;
+
+      } catch (err) {
+        errorDiv.innerText = 'Không thể kết nối tới Server Python!';
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // 2. Tính toán Ống dẫn sóng hình trụ tròn
+    async function calcCircularWG() {
+      const a = document.getElementById('circ_a').value;
+      const er = document.getElementById('circ_er').value;
+      const mode_type = document.getElementById('circ_mode_type').value;
+      const m = document.getElementById('circ_m').value;
+      const n = document.getElementById('circ_n').value;
+      const errorDiv = document.getElementById('circ_error');
+
+      errorDiv.style.display = 'none';
+
+      try {
+        const response = await fetch('/calculate_circ_wg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ a: a, er: er, mode_type: mode_type, m: m, n: n })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          errorDiv.innerText = data.error || 'Có lỗi xảy ra!';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        document.getElementById('circ_fc').value = data.fc;
+        document.getElementById('circ_lc').value = data.lc;
+
+      } catch (err) {
+        errorDiv.innerText = 'Không thể kết nối tới Server Python!';
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // 3. Tính toán Ống dẫn sóng chữ nhật
+    async function calcRectWG() {
+      const a = document.getElementById('rect_a').value;
+      const b = document.getElementById('rect_b').value;
+      const er = document.getElementById('rect_er').value;
+      const mode_type = document.getElementById('rect_mode_type').value;
+      const m = document.getElementById('rect_m').value;
+      const n = document.getElementById('rect_n').value;
+      const f = document.getElementById('rect_f').value;
+      const errorDiv = document.getElementById('rect_error');
+
+      errorDiv.style.display = 'none';
+
+      try {
+        const response = await fetch('/calculate_rect_wg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ a: a, b: b, er: er, mode_type: mode_type, m: m, n: n, f: f })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          errorDiv.innerText = data.error || 'Có lỗi xảy ra!';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        document.getElementById('rect_fc').value = data.fc;
+        document.getElementById('rect_lc').value = data.lc;
+        document.getElementById('rect_zwave').value = data.zwave;
+
+      } catch (err) {
+        errorDiv.innerText = 'Không thể kết nối tới Server Python!';
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // 4. Tính toán Đường truyền mạch in (Microstrip)
+    async function calcMicrostrip() {
+      const w = document.getElementById('ms_w').value;
+      const d = document.getElementById('ms_d').value;
+      const er = document.getElementById('ms_er').value;
+      const errorDiv = document.getElementById('ms_error');
+
+      errorDiv.style.display = 'none';
+
+      try {
+        const response = await fetch('/calculate_microstrip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ w: w, d: d, er: er })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          errorDiv.innerText = data.error || 'Có lỗi xảy ra!';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        document.getElementById('ms_z0').value = data.z0;
+        document.getElementById('ms_eeff').value = data.eeff;
+        document.getElementById('ms_wd_ratio').value = data.wd_ratio;
+
+      } catch (err) {
+        errorDiv.innerText = 'Không thể kết nối tới Server Python!';
+        errorDiv.style.display = 'block';
+      }
+    }
+    // 5. Tính toán Đường truyền hai dây (Two-Wire)
+    async function calcTwoWire() {
+      const er = document.getElementById('twowire_er').value;
+      const d = document.getElementById('twowire_d').value;
+      const D = document.getElementById('twowire_D').value;
+      const errorDiv = document.getElementById('twowire_error');
+
+      errorDiv.style.display = 'none';
+
+      try {
+        const response = await fetch('/calculate_twowire', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ er: er, d: d, D: D })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          errorDiv.innerText = data.error || 'Có lỗi xảy ra!';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        document.getElementById('twowire_z0').value = data.z0;
+        document.getElementById('twowire_C').value = data.C;
+        document.getElementById('twowire_L').value = data.L;
+        document.getElementById('twowire_vp').value = data.vp;
+        document.getElementById('twowire_td').value = data.td;
+
+      } catch (err) {
+        errorDiv.innerText = 'Không thể kết nối tới Server Python!';
+        errorDiv.style.display = 'block';
+      }
+    }
+  </script>
+
+</body>
+</html>
